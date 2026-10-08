@@ -64,16 +64,14 @@ def discoverPage() {
 }
 
 void appButtonHandler(String btn) {
-    switch (btn) {
-        case "probeIp":     probeManualIp(); break
-        case "scan":        startScan(); break
-        case "addSelected": addSelected(); break
-    }
+    // The button fires before the page's input values are saved to settings, so run the action a moment later.
+    String action = [probeIp: "probeManualIp", scan: "startScan", addSelected: "addSelected"][btn]
+    if (action) runIn(1, action)
 }
 
 // ---- actions ---------------------------------------------------------------------------
 
-private void probeManualIp() {
+void probeManualIp() {
     String ip = settings.manualIp?.trim()
     if (!lifxIsValidIp(ip)) { state.probeMessage = "'${ip ?: ''}' is not a valid IPv4 address."; return }   // review focus 5
     state.autoAdd = (state.autoAdd ?: []) + ip
@@ -88,7 +86,7 @@ void probeTimeout() {
     state.autoAdd = []
 }
 
-private void startScan() {
+void startScan() {
     String addr = settings.broadcastAddr ?: defaultBroadcast()
     if (!lifxIsValidIp(addr)) return
     state.found = [:]
@@ -96,7 +94,7 @@ private void startScan() {
     sendTo(2, addr, [tagged: true])
 }
 
-private void addSelected() {
+void addSelected() {
     (settings.toAdd ?: []).each { String mac ->
         Map f = state.found?.get(mac)
         if (f) createBulb(mac, f.ip, f.label)
