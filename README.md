@@ -2,7 +2,11 @@
 
 Local-only (UDP 56700) control of LIFX bulbs: on/off, level, color, color temperature, polling. No cloud, no account.
 
-## Install (order matters)
+## Install
+### Option A: bundle (easiest)
+**Bundles → Import** → upload `dist/lifx-lan-bundle.zip` (installs library, driver and app in one go), then **Apps → Add user app → LIFX LAN Manager**. Rebuild with `./build-bundle.sh`. *The zip layout follows the community description of Hubitat bundles and is untested on a hub; if import fails, use option B.*
+
+### Option B: manual (order matters)
 1. **Developer tools → Libraries code → New Library** → paste `lib/lifx-protocol.groovy` → Save.
 2. **Drivers code → New Driver** → paste `drivers/lifx-bulb-driver.groovy` → Save.
 3. **Apps code → New App** → paste `apps/lifx-manager-app.groovy` → Save.
