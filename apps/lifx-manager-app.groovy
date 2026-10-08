@@ -23,7 +23,7 @@ def mainPage() {
     dynamicPage(name: "mainPage", title: "LIFX LAN Manager", install: true, uninstall: true) {
         section("Managed bulbs") {
             List kids = getChildDevices()
-            if (kids) kids.each { paragraph "<b>${it.displayName}</b> &mdash; ${it.deviceNetworkId} &mdash; ${it.getSetting('ip') ?: 'no IP'}" }
+            if (kids) kids.each { paragraph "<b>${esc(it.displayName)}</b> &mdash; ${esc(it.deviceNetworkId)} &mdash; ${esc(it.getSetting('ip') ?: 'no IP')}" }
             else paragraph "No bulbs yet."
         }
         section("Add or update") {
@@ -41,7 +41,7 @@ def addByIpPage() {
         section {
             input "manualIp", "text", title: "Bulb IP address", required: false
             input "probeIp", "button", title: "Probe"
-            if (state.probeMessage) paragraph state.probeMessage
+            if (state.probeMessage) paragraph esc(state.probeMessage)
         }
     }
 }
@@ -54,7 +54,7 @@ def discoverPage() {
             input "scan", "button", title: scanning ? "Scanning..." : "Scan"
         }
         section("Found (not yet added)") {
-            Map options = unmanagedFound().collectEntries { mac, f -> [(mac): "${f.label ?: 'LIFX ' + mac[-6..-1]} (${f.ip})"] }
+            Map options = unmanagedFound().collectEntries { mac, f -> [(mac): esc("${f.label ?: 'LIFX ' + mac[-6..-1]} (${f.ip})")] }
             if (options) {
                 input "toAdd", "enum", title: "Select bulbs to add", options: options, multiple: true
                 input "addSelected", "button", title: "Add selected"
@@ -117,13 +117,16 @@ private Map unmanagedFound() {
 
 private void sendTo(int type, String ip, Map opts = [:]) {
     state.seq = ((state.seq ?: 0) + 1) % 256
-    String hex = lifxBuildPacket(type, opts + [sequence: state.seq, resRequired: true])
+    if (!state.source) state.source = lifxNewSource()
+    String hex = lifxBuildPacket(type, opts + [source: state.source, sequence: state.seq, resRequired: true])
     debug "tx type ${type} -> ${ip}"
     sendHubCommand(lifxHubAction(hex, ip, "lifxCallback"))
 }
 
 // Reply shape for app callbacks is the least-verified part of the Hubitat API: see README test 1.
 void lifxCallback(def response) {
+    // Replies are unauthenticated UDP: only trust them while we have an outstanding probe/scan.
+    if (now() >= (state.scanUntil ?: 0L) && now() >= (state.probeUntil ?: 0L)) { debug "ignored unsolicited reply"; return }
     Map msg = null
     try { msg = parseLanMessage(response?.description) } catch (Exception e) { debug "parseLanMessage failed: ${e.message}" }
     String hex = (msg?.payload ?: response?.body) as String
@@ -171,6 +174,11 @@ private void createBulb(String mac, String ip, String label) {
     def child = addChildDevice("ivank", "LIFX LAN Bulb", dni, [name: "LIFX LAN Bulb", label: name, isComponent: false])
     child.setIp(ip)
     log.info "Added ${name} (${dni}) at ${ip}"
+}
+
+// Labels/IPs come from the network or the user; escape before rendering as HTML.
+private String esc(def v) {
+    return (v as String).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;").replace("'", "&#39;")
 }
 
 private void debug(String msg) { if (settings.logEnable) log.debug "LIFX app: ${msg}" }

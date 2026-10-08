@@ -94,4 +94,8 @@ check("IP helpers (review focus 5)") {
     assert lib.lifxBroadcastFor("192.168.1.5") == "192.168.1.255"
 }
 
+check("newSource is never 0 or 1") {
+    200.times { assert lib.lifxNewSource() >= 2 }
+}
+
 println "OK: ${passed} checks passed"

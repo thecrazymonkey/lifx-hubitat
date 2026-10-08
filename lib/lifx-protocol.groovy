@@ -44,6 +44,11 @@ Integer lifxClampKelvin(def k) {
 
 // ---- packets ----------------------------------------------------------------
 
+// LIFX: source must not be 0 (reply may be broadcast) or 1 (old firmware quirks).
+long lifxNewSource() {
+    return 2L + new Random().nextInt(Integer.MAX_VALUE - 4)
+}
+
 String lifxBuildPacket(int type, Map opts = [:]) {
     String payload = opts.payload ?: ""
     int size = 36 + payload.length().intdiv(2)

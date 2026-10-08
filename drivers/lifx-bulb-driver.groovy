@@ -98,11 +98,11 @@ void refresh() {
 }
 
 void poll() {
-    state.missed = (state.missed ?: 0) + 1
-    if (state.missed >= 3 && device.currentValue("healthStatus") != "offline") {
+    if ((state.missed ?: 0) >= 3 && device.currentValue("healthStatus") != "offline") {   // 3 earlier polls unanswered
         log.warn "${device.displayName}: no reply to ${state.missed} polls, marking offline"
         sendEvent(name: "healthStatus", value: "offline")
     }
+    state.missed = (state.missed ?: 0) + 1
     refresh()
 }
 
@@ -133,7 +133,9 @@ private void sendColor(Map c, int ms, boolean turnOn) {
 private void send(int type, String payload, int delayMs = 0) {
     if (!lifxIsValidIp(settings.ip)) { log.warn "${device.displayName}: set a valid IP address in preferences"; return }
     state.seq = ((state.seq ?: 0) + 1) % 256
-    String hex = lifxBuildPacket(type, [mac: device.deviceNetworkId, sequence: state.seq, resRequired: true, payload: payload])
+    if (!state.source) state.source = lifxNewSource()
+    // Get replies come regardless; a Set's State reply can carry pre-change values, so don't request one.
+    String hex = lifxBuildPacket(type, [mac: device.deviceNetworkId, source: state.source, sequence: state.seq, resRequired: type == 101, payload: payload])
     debug "tx type ${type} -> ${settings.ip}"
     if (delayMs > 0) runInMillis(delayMs, "sendPacket", [data: [hex: hex], overwrite: false])
     else sendPacket([hex: hex])

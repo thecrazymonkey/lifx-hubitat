@@ -53,7 +53,7 @@ Scaling: Hubitat hue 0–100 ↔ 0–65535, sat 0–100 ↔ 0–65535, level 0�
 - Capabilities: Switch, SwitchLevel, ColorControl, ColorTemperature, ColorMode, Refresh, Initialize.
 - Preferences: IP (kept in sync with app), poll interval (off/1/5/15/30 min, default 1), default transition time (ms, default 500), debug logging (auto-off after 30 min).
 - Commands send the action, then a `GetColor` ~300 ms later to confirm state.
-- Sequence counter and `source` id are per-device state; `res_required=1` on Get/Set so state replies come back.
+- Sequence counter and `source` id are per-device state; `source` is a random value ≥ 2 (0 makes bulbs broadcast replies). `res_required=1` on Get only; a Set's State reply can carry pre-change values, so the follow-up `GetColor` confirms state.
 - No reply to a poll: log a warning; `presence`-style attribute `healthStatus` set to offline after 3 missed polls.
 
 ## Error handling
